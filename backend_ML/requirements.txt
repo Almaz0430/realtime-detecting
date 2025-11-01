@@ -1,0 +1,23 @@
+# Core ML dependencies (CPU version - for GPU see install_gpu.txt)
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# YOLO and Computer Vision
+ultralytics
+opencv-python
+
+# Web framework
+flask
+flask-cors
+
+# Data collection
+kagglehub
+
+# Utilities
+python-dotenv
+roboflow
+pyyaml
+requests
+pillow
+numpy
