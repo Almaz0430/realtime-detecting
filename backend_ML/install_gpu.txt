@@ -1,0 +1,20 @@
+# Установка PyTorch с GPU поддержкой
+
+## Для CUDA 11.8 (рекомендуется):
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+## Для CUDA 12.1 (если у вас новые драйверы):
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+
+## Для старых драйверов CUDA 10.2:
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu102
+
+## Только CPU (если нет GPU):
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
+
+## Проверка установки:
+python -c "import torch; print('PyTorch version:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"
+
+## Примечание:
+- Сначала удалите текущий PyTorch: pip uninstall torch torchvision torchaudio
+- Затем установите нужную версию из команд выше
