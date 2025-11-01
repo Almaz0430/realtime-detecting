@@ -109,7 +109,7 @@ export default function ImageStream({ items = mockItems, uploading, onUpload, ti
         onDragOver={(event) => event.preventDefault()}
         onDrop={handleDrop}
       >
-        {uploading ? "Идет загрузка…" : "Перетащите файлы сюда или используйте кнопку"}
+        {uploading ? "Идёт загрузка…" : "Перетащите файлы сюда или используйте кнопку"}
       </div>
 
       <ul className="grid gap-4 md:grid-cols-3">

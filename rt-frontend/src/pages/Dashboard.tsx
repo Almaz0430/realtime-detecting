@@ -33,7 +33,7 @@ const DashboardToolbar = () => (
       Последние 24 часа
     </button>
     <button className="rounded-full border border-transparent bg-primary px-4 py-2 text-sm font-medium text-text transition hover:bg-primary-dark">
-      Экспорт отчета
+      Экспорт отчёта
     </button>
   </div>
 )
@@ -62,7 +62,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between rounded-2xl border border-surface bg-background/60 px-4 py-3 text-sm text-muted">
               <div>
                 <p className="font-medium text-text">Состояние линии</p>
-                <p>Температура камеры 187 °C · Давление 1.15 бар · Время цикла 03:12</p>
+                <p>Температура камеры 187°C · Давление 1.15 бар · Время цикла 03:12</p>
               </div>
               <Link className="text-primary transition hover:text-primary-dark" to="/details">
                 Открыть последнюю партию
