@@ -16,7 +16,40 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from ultralytics import YOLO
 import json
+import google.generativeai as genai
 
+try:
+    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+    if not GEMINI_API_KEY:
+        raise ValueError("GEMINI_API_KEY не найден в переменных окружения.")
+        
+    genai.configure(api_key=GEMINI_API_KEY)
+    
+    SYSTEM_PROMPT = """You are a senior AI quality control specialist. Your task is to provide a final, comprehensive report for an end-user based on two sources of information: an original user-uploaded IMAGE and a JSON_DATA report from a preliminary ML detection model.
+
+    1.  **Analyze the IMAGE:** First, personally inspect the provided IMAGE for any visible paint defects (like scratches, dents, bubbling, etc.).
+    2.  **Analyze the JSON_DATA:** Second, review the `detections` and `class_counts` from the `JSON_DATA` provided by the local ML model.
+    3.  **Synthesize and Report:** Combine your own visual analysis with the model's data to create a single, detailed report.
+        * State the total defects found by the local model (`total_defects`).
+        * If the local model's detections (e.g., `class: "bubbling"`) match what you see in the IMAGE, confirm this (e.g., "The model correctly identified 'bubbling'").
+        * If the local model missed something you see, point it out (e.g., "In addition to the model's findings, I also observe a 'scratch' that was not flagged").
+        * If the local model's finding seems incorrect or has low confidence, add your assessment.
+        * If no defects are found by either you or the model, congratulate the user.
+        * Conclude by informing the user that a processed image with the *model's* detections highlighted (`result_image`) is also available.
+    4.  **Tone:** Be professional, polite, and informative.
+    5.  **CRITICAL INSTRUCTION:** You must provide your entire final response in the Russian language.
+    """
+    
+    gemini_model = genai.GenerativeModel(
+        model_name="models/gemini-flash-latest",  # <-- Вот точное имя
+        system_instruction=SYSTEM_PROMPT
+    )
+    print("Клиент Gemini успешно сконфигурирован.")
+
+except Exception as e:
+    print(f"Ошибка конфигурации Gemini: {e}")
+    gemini_model = None
+# -----------------------------
 
 class PaintDefectDetector:
     """Класс для обнаружения дефектов окраски"""
@@ -167,7 +200,6 @@ try:
 except Exception as e:
     print(f"⚠️  Ошибка инициализации детектора: {e}")
 
-
 @app.route('/')
 def index():
     """Информация о API"""
@@ -181,6 +213,7 @@ def index():
             'GET /api/health': 'Проверка состояния API'
         },
         'model_loaded': detector is not None,
+        'gemini_loaded': gemini_model is not None,
         'timestamp': datetime.now().isoformat()
     })
 
@@ -188,11 +221,12 @@ def index():
 @app.route('/api/detect', methods=['POST'])
 def detect_defects():
     """API для обнаружения дефектов"""
+    
     if detector is None:
-        return jsonify({
-            'error': 'Модель не загружена. Сначала обучите модель.',
-            'success': False
-        }), 500
+        return jsonify({'error': 'Модель детекции (detector) не загружена.', 'success': False}), 500
+    
+    if gemini_model is None:
+        return jsonify({'error': 'Модель Gemini не загружена. Проверьте API-ключ.', 'success': False}), 500
     
     try:
         # Проверяем наличие файла
@@ -214,7 +248,9 @@ def detect_defects():
         
         # Читаем изображение
         image_bytes = file.read()
+
         image = Image.open(io.BytesIO(image_bytes))
+
         image_np = np.array(image)
         
         # Конвертируем в BGR для OpenCV
@@ -236,15 +272,62 @@ def detect_defects():
         for detection in detections:
             class_name = detection['class']
             defect_counts[class_name] = defect_counts.get(class_name, 0) + 1
+            
+
+        total_defects = len(detections)
         
-        return jsonify({
+        ml_output_data = {
             'success': True,
             'detections': detections,
-            'defect_counts': defect_counts,
-            'total_defects': len(detections),
-            'result_image': result_base64,
+            'class_counts': defect_counts, 
+            'total_defects': total_defects,
+            'image_with_detections_available': True 
+        }
+
+        json_string = json.dumps(ml_output_data, ensure_ascii=False, indent=2)
+
+        gemini_user_prompt_text = f"""
+        Here is the JSON_DATA from our local detection model:
+        ```json
+        {json_string}
+        Please analyze this JSON_DATA along with the provided user IMAGE and generate the final report as per your instructions. """
+        
+        image_pil_for_mime = Image.open(io.BytesIO(image_bytes))
+        image_mime_type = Image.MIME.get(image_pil_for_mime.format)
+
+        # Убедимся, что формат поддерживается
+        if image_mime_type not in ['image/jpeg', 'image/png']:
+            image_mime_type = 'image/jpeg' # Конвертируем в JPEG по умолчанию
+
+        image_part = {
+            "mime_type": image_mime_type,
+            "data": image_bytes
+        }
+
+        gemini_report = ""
+        try:
+            # Отправляем список: [текст, изображение]
+            response = gemini_model.generate_content([
+                gemini_user_prompt_text, # Часть 1: Текст (JSON)
+                image_part               # Часть 2: Изображение
+            ])
+            gemini_report = response.text
+        except Exception as e:
+            print(f"Ошибка при вызове Gemini API: {e}")
+            gemini_report = "Не удалось сгенерировать подробный отчет."
+            
+        # данные фронту
+        return jsonify({
+            'success': True,
+            'detections': detections,       # От локальной модели
+            'defect_counts': defect_counts, # От локальной модели
+            'total_defects': total_defects, # От локальной модели
+            'result_image': result_base64,  # Картинка от локальной модели
+            'gemini_report': gemini_report, # <-- Отчет от Gemini
             'timestamp': datetime.now().isoformat()
         })
+
+
     
     except Exception as e:
         return jsonify({

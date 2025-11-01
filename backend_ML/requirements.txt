@@ -21,3 +21,4 @@ pyyaml
 requests
 pillow
 numpy
+google.generativeai
