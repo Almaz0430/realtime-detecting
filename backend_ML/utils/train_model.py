@@ -27,13 +27,13 @@ class ModelTrainer:
         
         # Параметры обучения
         self.training_params = {
-            'epochs': 30,  # Уменьшено для быстрого тестирования
+            'epochs': 60,
             'imgsz': 640,
-            'batch': 8,   # Уменьшено для стабильности
+            'batch': 16,
             'model': 'yolov8n.pt',
             'patience': 10,
             'save_period': 10,
-            'device': 'auto'
+            'device': 0
         }
         
         # Путь к конфигурации датасета
@@ -146,16 +146,9 @@ class ModelTrainer:
             gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
             print(f"✅ GPU доступен: {gpu_name} ({gpu_memory:.1f} GB)")
             print(f"   Количество GPU: {gpu_count}")
-            
-            # Корректируем batch size для GPU
-            if gpu_memory < 4:
-                self.training_params['batch'] = 4
-                print("⚠️  Уменьшен batch size до 4 из-за ограниченной памяти GPU")
         else:
             print("⚠️  GPU не доступен, будет использоваться CPU")
-            self.training_params['batch'] = 4
             self.training_params['device'] = 'cpu'
-            print("   Уменьшен batch size до 4 для CPU")
     
     def train_model(self):
         """Основной метод обучения модели"""
