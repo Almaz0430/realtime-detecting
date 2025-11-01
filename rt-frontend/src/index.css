@@ -12,9 +12,24 @@
 @layer base {
   body {
     @apply min-h-screen bg-background text-text antialiased;
+    background-image:
+      radial-gradient(circle at 20% 20%, rgba(255, 77, 77, 0.18), transparent 55%),
+      radial-gradient(circle at 80% 0%, rgba(255, 255, 255, 0.08), transparent 50%),
+      linear-gradient(135deg, rgba(46, 46, 46, 0.92), rgba(32, 32, 32, 0.92));
+    background-attachment: fixed;
   }
 
   ::selection {
     @apply bg-primary text-text;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.06) 1px, transparent 0);
+    background-size: 3px 3px;
+    opacity: 0.4;
   }
 }
