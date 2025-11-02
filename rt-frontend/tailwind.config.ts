@@ -1,7 +1,16 @@
-import type { Config } from "tailwindcss"
+import type { Config } from 'tailwindcss'
 
-const config = {
-  content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // кастомные цвета удалены, используются стандартные цвета Tailwind
+      },
+    },
+  },
+  plugins: [],
 } satisfies Config
-
-export default config

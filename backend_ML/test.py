@@ -6,7 +6,7 @@ print("--- [1/4] Загрузка конфигурации Gemini ---")
 
 try:
     # 1. Получаем ключ из окружения
-    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+    GEMINI_API_KEY = "AIzaSyC6Ja-qGbZWCDSDEZlPN3gwYMUxAWckhXQ"
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY не найден в переменных окружения.")
         
