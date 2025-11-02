@@ -13,9 +13,7 @@
 ### Поддерживаемые классы дефектов:
 - `scratch` - царапины
 - `dent` - вмятины  
-- `paint_run` - потеки краски
-- `undercoat_missing` - отсутствие грунтовки
-- `contamination` - загрязнения
+- `runs` - подтеки краски
 - `bubbling` - пузыри
 
 ## Установка
@@ -129,9 +127,7 @@ curl -X POST -F "image=@car_image.jpg" http://localhost:5000/api/detect
     "class_counts": {
         "scratch": 1,
         "dent": 0,
-        "paint_run": 0,
-        "undercoat_missing": 0,
-        "contamination": 0,
+        "runs": 0,
         "bubbling": 0
     },
     "total_defects": 1,
@@ -147,7 +143,7 @@ curl -X POST -F "image=@car_image.jpg" http://localhost:5000/api/detect
 {
     "model_loaded": true,
     "model_path": "models/paint_defect.pt",
-    "classes": ["scratch", "dent", "paint_run", "undercoat_missing", "contamination", "bubbling"],
+    "classes": ["scratch", "dent", "runs", "bubbling"],
     "input_size": [640, 640]
 }
 ```

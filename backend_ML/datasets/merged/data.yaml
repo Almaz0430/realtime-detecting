@@ -1,11 +1,10 @@
 names:
 - scratch
 - dent
-- paint_run
-- undercoat_missing
-- contamination
+- runs
 - bubbling
-nc: 6
+- clean
+nc: 5
 path: C:\Users\arser\OneDrive\Desktop\dev\realtime-detecting\backend_ML\datasets\merged
 train: images/train
 val: images/val

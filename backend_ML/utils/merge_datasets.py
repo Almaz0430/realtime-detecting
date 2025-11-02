@@ -40,12 +40,10 @@ class DatasetMerger:
         
         # Целевые классы для объединенного датасета
         self.target_classes = [
-            'scratch',           # царапины
-            'dent',             # вмятины  
-            'paint_run',        # подтёки краски
-            'undercoat_missing', # непрокрасы
-            'contamination',    # сорность
-            'bubbling'          # вспучивание
+            'scratch',          # царапины
+            'dent',            # вмятины
+            'runs',            # подтёки краски
+            'bubbling'         # пузыри
         ]
         
         # Маппинг классов из разных датасетов к целевым классам
@@ -55,20 +53,16 @@ class DatasetMerger:
             'scratches': 'scratch',
             'dent': 'dent',
             'dents': 'dent',
-            'paint_run': 'paint_run',
-            'paint_runs': 'paint_run',
-            'undercoat_missing': 'undercoat_missing',
-            'contamination': 'contamination',
+            'paint_run': 'runs',
+            'paint_runs': 'runs',
+            'runs': 'runs',
             'bubbling': 'bubbling',
             'bubble': 'bubbling',
             
             # Возможные варианты из датасетов
             'damage': 'dent',
-            'defect': 'contamination',
-            'paint_defect': 'contamination',
-            'surface_defect': 'contamination',
             'car_damage': 'dent',
-            'paint_damage': 'paint_run',
+            'paint_damage': 'runs',
         }
         
         # Список URL датасетов Roboflow
@@ -153,9 +147,10 @@ class DatasetMerger:
             print(f"Директории {split} не найдены в {dataset_dir}")
             return
         
-        # Целевые директории
-        target_images_dir = self.merged_dir / "images" / split
-        target_labels_dir = self.merged_dir / "labels" / split
+        # Целевые директории - преобразуем 'valid' в 'val'
+        target_split = 'val' if split == 'valid' else split
+        target_images_dir = self.merged_dir / "images" / target_split
+        target_labels_dir = self.merged_dir / "labels" / target_split
         
         target_images_dir.mkdir(parents=True, exist_ok=True)
         target_labels_dir.mkdir(parents=True, exist_ok=True)
@@ -220,8 +215,8 @@ class DatasetMerger:
             print(f"Не удалось создать маппинг классов для {dataset_dir}")
             return
         
-        # Обрабатываем train и val splits
-        for split in ['train', 'val']:
+        # Обрабатываем train и valid splits
+        for split in ['train', 'valid']:
             self.convert_annotations(dataset_dir, class_map, split)
     
     def create_merged_yaml(self):

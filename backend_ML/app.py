@@ -61,9 +61,7 @@ class PaintDefectDetector:
         self.class_names = [
             'scratch',           # царапины
             'dent',             # вмятины  
-            'paint_run',        # подтёки краски
-            'undercoat_missing', # непрокрасы
-            'contamination',    # сорность
+            'runs',             # подтёки краски
             'bubbling'          # вспучивание
         ]
         
@@ -71,9 +69,7 @@ class PaintDefectDetector:
         self.colors = {
             'scratch': (0, 0, 255),           # красный
             'dent': (255, 0, 0),             # синий
-            'paint_run': (0, 255, 255),      # желтый
-            'undercoat_missing': (255, 0, 255), # магента
-            'contamination': (0, 255, 0),    # зеленый
+            'runs': (0, 255, 255),           # желтый
             'bubbling': (255, 165, 0)        # оранжевый
         }
         
