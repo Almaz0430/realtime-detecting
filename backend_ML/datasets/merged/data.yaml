@@ -5,6 +5,6 @@ names:
 - bubbling
 - clean
 nc: 5
-path: C:\Users\arser\OneDrive\Desktop\dev\realtime-detecting\backend_ML\datasets\merged
+path: C:\Users\Almaz\Desktop\realtime-detecting\backend_ML\datasets\merged
 train: images/train
 val: images/val

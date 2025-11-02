@@ -27,7 +27,7 @@ class ModelTrainer:
         
         # Параметры обучения
         self.training_params = {
-            'epochs': 60,
+            'epochs': 80,
             'imgsz': 640,
             'batch': 16,
             'model': 'yolov8n.pt',
