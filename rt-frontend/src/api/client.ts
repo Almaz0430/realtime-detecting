@@ -12,6 +12,7 @@ export type DetectResponse = {
   total_defects: number
   result_image: string
   timestamp: string
+  gemini_report?: string
 }
 
 export type DetectErrorResponse = {
@@ -124,6 +125,73 @@ export async function detectDefects(params: { file: File; confidence?: number })
   const payload = await parseJson<DetectResponse | DetectErrorResponse>(response)
   if (!response.ok || !("success" in payload) || !payload.success) {
     const message = payload && "error" in payload && payload.error ? payload.error : "Detection request failed"
+    throw new ApiError(message, response.status, payload)
+  }
+
+  return payload
+}
+
+// Video detection types
+export type VideoDetectionFrame = {
+  frame_number: number
+  image: string
+  defects_count: number
+}
+
+export type VideoDetectionResponse = {
+  success: true
+  summary: {
+    total_detections: number
+    processed_frames: number
+    total_frames: number
+    defect_counts: Record<string, number>
+    defect_types: string[]
+  }
+  processing_stats: {
+    total_detections: number
+    processed_frames: number
+    total_frames: number
+    defect_summary: Record<string, number>
+    output_path: string
+  }
+  output_filename: string
+  video_url?: string
+  extracted_frames: VideoDetectionFrame[]
+  timestamp: string
+}
+
+export type VideoDetectionErrorResponse = {
+  success: false
+  error: string
+}
+
+export async function detectVideoDefects(params: {
+  file: File
+  confidence?: number
+  skipFrames?: number
+  extractFrames?: number
+}): Promise<VideoDetectionResponse> {
+  const formData = new FormData()
+  formData.append("video", params.file)
+  
+  if (typeof params.confidence === "number") {
+    formData.append("confidence", params.confidence.toString())
+  }
+  if (typeof params.skipFrames === "number") {
+    formData.append("skip_frames", params.skipFrames.toString())
+  }
+  if (typeof params.extractFrames === "number") {
+    formData.append("extract_frames", params.extractFrames.toString())
+  }
+
+  const response = await fetch(withBase("/api/detect_video"), {
+    method: "POST",
+    body: formData,
+  })
+
+  const payload = await parseJson<VideoDetectionResponse | VideoDetectionErrorResponse>(response)
+  if (!response.ok || !("success" in payload) || !payload.success) {
+    const message = payload && "error" in payload && payload.error ? payload.error : "Video detection request failed"
     throw new ApiError(message, response.status, payload)
   }
 
