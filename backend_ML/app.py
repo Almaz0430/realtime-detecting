@@ -12,7 +12,7 @@ from datetime import datetime
 import cv2
 import numpy as np
 from PIL import Image
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Response
 from flask_cors import CORS
 from ultralytics import YOLO
 import json
@@ -185,6 +185,7 @@ class PaintDefectDetector:
 
 # Создаем Flask приложение
 app = Flask(__name__)
+app.config['JSON_AS_ASCII'] = False
 CORS(app)  # Разрешаем CORS для фронтенда
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 
@@ -318,7 +319,7 @@ def detect_defects():
             gemini_report = "Не удалось сгенерировать подробный отчет."
             
         # данные фронту
-        return jsonify({
+        response_data = ({
             'success': True,
             'detections': detections,       # От локальной модели
             'defect_counts': defect_counts, # От локальной модели
@@ -327,6 +328,10 @@ def detect_defects():
             'gemini_report': gemini_report, # <-- Отчет от Gemini
             'timestamp': datetime.now().isoformat()
         })
+
+        json_string = json.dumps(response_data, ensure_ascii=False)
+
+        return Response(json_string, mimetype='application/json; charset=utf-8')
 
 
     
