@@ -19,9 +19,10 @@ import json
 import google.generativeai as genai
 
 try:
-    GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-    if not GEMINI_API_KEY:
-        raise ValueError("GEMINI_API_KEY не найден в переменных окружения.")
+    GEMINI_API_KEY = "AIzaSyC6Ja-qGbZWCDSDEZlPN3gwYMUxAWckhXQ"
+    # GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+    # if not GEMINI_API_KEY:
+    #     raise ValueError("GEMINI_API_KEY не найден в переменных окружения.")
         
     genai.configure(api_key=GEMINI_API_KEY)
     
@@ -378,7 +379,7 @@ def detect_defects():
         image_bytes = file.read()
 
         image = Image.open(io.BytesIO(image_bytes))
-
+        
         image_np = np.array(image)
         
         # Конвертируем в BGR для OpenCV
