@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { VideoCameraIcon, PhotoIcon, ExclamationTriangleIcon, CheckCircleIcon } from "@heroicons/react/24/outline"
+import { VideoCameraIcon, ExclamationTriangleIcon, CheckCircleIcon } from "@heroicons/react/24/outline"
 import { ApiError, detectVideoDefects, type VideoDetectionResponse } from "../api/client"
 
 interface VideoDefectDetectionProps {
@@ -9,7 +9,6 @@ interface VideoDefectDetectionProps {
 
 export default function VideoDefectDetection({ onAnalysisComplete, className = "" }: VideoDefectDetectionProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [fileType, setFileType] = useState<'video' | 'image'>('video')
   const [confidence, setConfidence] = useState(0.5)
   const [skipFrames, setSkipFrames] = useState(5)
   const [extractFrames, setExtractFrames] = useState(10)
@@ -17,7 +16,6 @@ export default function VideoDefectDetection({ onAnalysisComplete, className = "
   const [processingResult, setProcessingResult] = useState<VideoDetectionResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   // Устанавливаем URL видео из ответа API
@@ -37,10 +35,6 @@ export default function VideoDefectDetection({ onAnalysisComplete, className = "
     setError(null)
     // Очищаем предыдущий видео URL
     setVideoUrl(null)
-  }
-
-  const handleSelectFileClick = () => {
-    fileInputRef.current?.click()
   }
 
   const handleSubmit = async (event: React.FormEvent) => {

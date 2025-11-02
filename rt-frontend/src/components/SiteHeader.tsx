@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { ChevronDownIcon } from "@heroicons/react/24/outline"
 
 const locales = [
   { id: "ru", label: "Русский" },
@@ -7,22 +8,19 @@ const locales = [
 
 type Locale = (typeof locales)[number]["id"]
 
-interface SiteHeaderProps {
-  currentPage?: string
-}
-
-export default function SiteHeader({ currentPage }: SiteHeaderProps) {
+export default function SiteHeader() {
   const [activeLocale, setActiveLocale] = useState<Locale>("ru")
 
   return (
-    <header className="w-full border-b border-white/10 bg-neutral-800 text-white">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <div className="flex items-center gap-8">
-          <div>
-            <p className="text-xs uppercase tracking-[0.35em] text-gray-400">Система обнаружения дефектов окраски</p>
-            <h1 className="text-xl font-semibold text-white">Панель мониторинга</h1>
+    <>
+      <header className="w-full border-b border-white/10 bg-neutral-800 text-white">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-6 py-4">
+          <div className="flex items-center gap-8">
+            <div>
+              <p className="text-xs uppercase tracking-[0.35em] text-gray-400">Система обнаружения дефектов окраски</p>
+              <h1 className="text-xl font-semibold text-white">Панель мониторинга</h1>
+            </div>
           </div>
-        </div>
         
         <div className="flex items-center gap-3 text-sm">
           <span className="text-xs uppercase tracking-[0.35em] text-gray-400">Язык</span>
@@ -45,6 +43,11 @@ export default function SiteHeader({ currentPage }: SiteHeaderProps) {
           </div>
         </div>
       </div>
-    </header>
+      </header>
+      {/* Прыгающая стрелка вниз слева */}
+      <div className="fixed right-6 bottom-6 z-50 flex items-center animate-bounce cursor-pointer">
+        <ChevronDownIcon className="h-10 w-10 text-red-500 drop-shadow-xl" />
+      </div>
+    </>
   )
 }

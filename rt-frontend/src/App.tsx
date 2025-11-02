@@ -22,7 +22,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-neutral-900 text-white">
       <ScrollToTop />
-      <SiteHeader currentPage="detection" />
+      <SiteHeader />
       <main className="py-8">
         <div className="max-w-6xl mx-auto px-6">
           <h1 className="text-3xl font-bold text-white mb-8">

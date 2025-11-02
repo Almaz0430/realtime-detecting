@@ -31,10 +31,6 @@ export default function ImageDefectDetection({ onAnalysisComplete, className = "
     }
   }
 
-  const handleSelectFileClick = () => {
-    fileInputRef.current?.click()
-  }
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!selectedFile) {
