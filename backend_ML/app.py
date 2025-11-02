@@ -12,7 +12,7 @@ from datetime import datetime
 import cv2
 import numpy as np
 from PIL import Image
-from flask import Flask, request, jsonify, Response
+from flask import Flask, request, jsonify, Response, send_from_directory
 from flask_cors import CORS
 from ultralytics import YOLO
 import json
@@ -203,8 +203,8 @@ class PaintDefectDetector:
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
-        # Настраиваем кодек для выходного видео
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        # Настраиваем кодек для выходного видео (H.264 для лучшей совместимости с браузерами)
+        fourcc = cv2.VideoWriter_fourcc(*'avc1')  # H.264 кодек
         out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
         
         frame_count = 0
@@ -328,6 +328,70 @@ try:
         print("Сначала обучите модель: python utils/train_model.py")
 except Exception as e:
     print(f"⚠️  Ошибка инициализации детектора: {e}")
+
+@app.route('/temp/<filename>', methods=['GET', 'OPTIONS'])
+def serve_temp_file(filename):
+    """Статические файлы из папки temp с поддержкой Range requests"""
+    if request.method == 'OPTIONS':
+        # Обработка preflight запросов
+        response = Response()
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Range'
+        return response
+    
+    temp_dir = Path(__file__).parent / "temp"
+    file_path = temp_dir / filename
+    
+    if not file_path.exists():
+        return jsonify({'error': 'File not found'}), 404
+    
+    # Получаем размер файла
+    file_size = file_path.stat().st_size
+    
+    # Проверяем Range заголовок
+    range_header = request.headers.get('Range', None)
+    if range_header:
+        # Парсим Range заголовок (например: "bytes=0-1023")
+        byte_start = 0
+        byte_end = file_size - 1
+        
+        if range_header.startswith('bytes='):
+            range_match = range_header[6:].split('-')
+            if range_match[0]:
+                byte_start = int(range_match[0])
+            if range_match[1]:
+                byte_end = int(range_match[1])
+        
+        # Читаем нужную часть файла
+        with open(file_path, 'rb') as f:
+            f.seek(byte_start)
+            data = f.read(byte_end - byte_start + 1)
+        
+        # Создаем ответ с частичным содержимым
+        response = Response(
+            data,
+            206,  # Partial Content
+            headers={
+                'Content-Range': f'bytes {byte_start}-{byte_end}/{file_size}',
+                'Accept-Ranges': 'bytes',
+                'Content-Length': str(len(data)),
+                'Content-Type': 'video/mp4',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Range',
+            }
+        )
+        return response
+    else:
+        # Обычный запрос без Range
+        response = send_from_directory(temp_dir, filename)
+        # Добавляем CORS заголовки и поддержку Range
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Range'
+        response.headers['Accept-Ranges'] = 'bytes'
+        return response
 
 @app.route('/')
 def index():
@@ -532,10 +596,10 @@ def detect_video():
             )
         
         # Конвертируем обработанное видео в base64 (для небольших видео)
-        video_base64 = None
-        if output_path.exists() and output_path.stat().st_size < 10 * 1024 * 1024:  # Если меньше 10MB
-            with open(output_path, 'rb') as video_file:
-                video_base64 = base64.b64encode(video_file.read()).decode('utf-8')
+        video_url = None
+        if output_path.exists():
+            # Возвращаем URL для доступа к файлу
+            video_url = f"http://localhost:5000/temp/{output_filename}"
         
         # Конвертируем извлеченные кадры в base64
         frames_base64 = []
@@ -552,20 +616,19 @@ def detect_video():
                         'detections': frame_info['detections']
                     })
         
-        # Очищаем временные файлы
+        # Очищаем временные файлы (кроме обработанного видео)
         try:
             if input_path.exists():
                 input_path.unlink()
-            if not video_base64 and output_path.exists():  # Удаляем только если не отправляем в base64
-                output_path.unlink()
+            # НЕ удаляем output_path, так как он нужен для доступа по URL
         except Exception as e:
             print(f"Ошибка при очистке временных файлов: {e}")
         
         return jsonify({
             'success': True,
             'processing_stats': processing_stats,
-            'video_base64': video_base64,
-            'output_filename': output_filename if video_base64 else None,
+            'video_url': video_url,
+            'output_filename': output_filename if video_url else None,
             'extracted_frames': frames_base64,
             'summary': {
                 'total_frames': processing_stats['total_frames'],
