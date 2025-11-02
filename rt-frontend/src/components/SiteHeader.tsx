@@ -18,7 +18,7 @@ export default function SiteHeader() {
           <div className="flex items-center gap-8">
             <div>
               <p className="text-xs uppercase tracking-[0.35em] text-gray-400">Система обнаружения дефектов окраски</p>
-              <h1 className="text-xl font-semibold text-white">Панель мониторинга</h1>
+              <h1 className="text-xl font-semibold text-white">Dentify AI</h1>
             </div>
           </div>
         

@@ -1,15 +1,16 @@
-import { useState } from "react"
-import { VideoCameraIcon, PhotoIcon } from "@heroicons/react/24/outline"
-import ScrollToTop from "./components/ScrollToTop"
-import SiteHeader from "./components/SiteHeader"
-import VideoDefectDetection from "./components/VideoDefectDetection"
-import ImageDefectDetection from "./components/ImageDefectDetection"
-import { type VideoDetectionResponse, type DetectResponse } from "./api/client"
+import { useState } from "react";
+import { VideoCameraIcon, PhotoIcon, ChartBarIcon } from "@heroicons/react/24/outline";
+import ScrollToTop from "./components/ScrollToTop";
+import SiteHeader from "./components/SiteHeader";
+import VideoDefectDetection from "./components/VideoDefectDetection";
+import ImageDefectDetection from "./components/ImageDefectDetection";
+import { type VideoDetectionResponse, type DetectResponse } from "./api/client";
+import DashboardPage from "./pages/DashboardPage"; // Импортируем новую страницу
 
-type AnalysisMode = "video" | "image"
+type AnalysisMode = "video" | "image" | "dashboard"; // Добавляем новый режим
 
 export default function App() {
-  const [analysisMode, setAnalysisMode] = useState<AnalysisMode>("image")
+  const [analysisMode, setAnalysisMode] = useState<AnalysisMode>("image");
 
   const handleVideoAnalysisComplete = (result: VideoDetectionResponse) => {
     console.log('Анализ видео завершен:', result)
@@ -54,6 +55,17 @@ export default function App() {
                 <VideoCameraIcon className="h-4 w-4" />
                 Анализ видео
               </button>
+              <button // Добавляем кнопку для дашборда
+                onClick={() => setAnalysisMode("dashboard")}
+                className={`flex-1 rounded-lg px-4 py-2 text-sm font-medium transition flex items-center justify-center gap-2 ${
+                  analysisMode === "dashboard"
+                    ? "bg-red-500 text-white shadow-sm"
+                    : "text-gray-400 hover:text-white"
+                }`}
+              >
+                <ChartBarIcon className="h-4 w-4" />
+                Аналитика
+              </button>
             </div>
           </div>
 
@@ -63,14 +75,16 @@ export default function App() {
               onAnalysisComplete={handleVideoAnalysisComplete}
               className="w-full"
             />
-          ) : (
+          ) : analysisMode === "image" ? (
             <ImageDefectDetection 
               onAnalysisComplete={handleImageAnalysisComplete}
               className="w-full"
             />
+          ) : (
+            <DashboardPage />
           )}
         </div>
       </main>
     </div>
-  )
+  );
 }

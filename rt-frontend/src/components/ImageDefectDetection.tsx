@@ -9,7 +9,8 @@ interface ImageDefectDetectionProps {
 
 export default function ImageDefectDetection({ onAnalysisComplete, className = "" }: ImageDefectDetectionProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [confidence, setConfidence] = useState(0.1)
+  const [confidence, setConfidence] = useState(0.5)
+  const [generateReport, setGenerateReport] = useState(true)
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingResult, setProcessingResult] = useState<DetectResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -44,6 +45,7 @@ export default function ImageDefectDetection({ onAnalysisComplete, className = "
       const result = await detectDefects({
         file: selectedFile,
         confidence: confidence,
+        generateReport: generateReport,
       })
 
       setProcessingResult(result)
@@ -77,14 +79,18 @@ export default function ImageDefectDetection({ onAnalysisComplete, className = "
   }
 
   return (
-    <div className={`rounded-2xl border border-white/10 bg-neutral-800/80 p-6 shadow-lg shadow-black/40 ${className}`}>
-      <header className="mb-6">
-        <h2 className="text-xl font-semibold text-white">Анализ изображения</h2>
-        <p className="text-sm text-gray-400">Загрузите фотографию для детального анализа дефектов окраски</p>
-      </header>
+    <div className={`space-y-6 ${className}`}>
+      {/* Шапка компонента */}
+      <div className="rounded-2xl border border-white/10 bg-neutral-800/80 p-6 shadow-lg shadow-black/40">
+        <header>
+          <h2 className="text-xl font-semibold text-white">Анализ изображения</h2>
+          <p className="text-sm text-gray-400">Загрузите фотографию для детального анализа дефектов окраски</p>
+        </header>
+      </div>
 
+      {/* Сообщение о завершении анализа */}
       {processingResult && (
-        <div className="mb-6 flex items-center justify-between rounded-lg border border-green-500/30 bg-green-500/10 p-3">
+        <div className="mb-8 flex items-center justify-between rounded-lg border border-green-500/30 bg-green-500/10 p-3">
           <span className="flex items-center gap-2 text-sm text-green-400">
             <CheckCircleIcon className="h-5 w-5 text-green-400" /> Анализ изображения завершен успешно
           </span>
@@ -97,9 +103,11 @@ export default function ImageDefectDetection({ onAnalysisComplete, className = "
         </div>
       )}
 
+      {/* Форма для загрузки и настроек */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Загрузка файла */}
-        <div>
+        {/* Блок загрузки файла */}
+        <div className="rounded-xl border border-white/10 bg-neutral-900/50 p-6">
+          <h3 className="text-base font-semibold text-white mb-4">1. Загрузка файла</h3>
           <div className="relative">
             <input
               ref={fileInputRef}
@@ -119,7 +127,7 @@ export default function ImageDefectDetection({ onAnalysisComplete, className = "
           </div>
 
           {selectedFile && (
-            <div className="mt-3 rounded-lg border border-white/10 bg-neutral-900/80 p-3">
+            <div className="mt-3 rounded-lg border border-white/10 bg-neutral-800/80 p-3">
               <p className="text-sm text-white">
                 🖼️ {selectedFile.name} ({formatFileSize(selectedFile.size)})
               </p>
@@ -141,40 +149,60 @@ export default function ImageDefectDetection({ onAnalysisComplete, className = "
           )}
         </div>
 
-        {/* Настройки */}
-        <div>
-          <label className="block text-sm font-medium text-white mb-2">
-            Уверенность модели
-          </label>
-          <div className="space-y-2">
-            <input
-              type="range"
-              min="0.1"
-              max="0.9"
-              step="0.05"
-              value={confidence}
-              onChange={(e) => setConfidence(parseFloat(e.target.value))}
-              className="w-full h-2 bg-neutral-900 rounded-lg appearance-none cursor-pointer range-lg accent-red-500"
-            />
-            <div className="flex justify-between text-xs text-gray-400">
-              <span>Низкая (0.1)</span>
-              <span className="text-red-500 font-medium">{confidence.toFixed(2)}</span>
-              <span>Высокая (0.9)</span>
+        {/* Блок настроек */}
+        <div className="rounded-xl border border-white/10 bg-neutral-900/50 p-6 space-y-4">
+          <h3 className="text-base font-semibold text-white mb-4">2. Настройки анализа</h3>
+          <div>
+            <label className="block text-sm font-medium text-white mb-2">
+              Уверенность модели
+            </label>
+            <div className="space-y-2">
+              <input
+                type="range"
+                min="0.1"
+                max="0.9"
+                step="0.05"
+                value={confidence}
+                onChange={(e) => setConfidence(parseFloat(e.target.value))}
+                className="w-full h-2 bg-neutral-800 rounded-lg appearance-none cursor-pointer range-lg accent-red-500"
+              />
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>Низкая (0.1)</span>
+                <span className="text-red-500 font-medium">{confidence.toFixed(2)}</span>
+                <span>Высокая (0.9)</span>
+              </div>
             </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Более высокие значения дают меньше ложных срабатываний, но могут пропустить некоторые дефекты
+            </p>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
-            Более высокие значения дают меньше ложных срабатываний, но могут пропустить некоторые дефекты
-          </p>
+
+          <div className="flex items-center justify-between pt-4 border-t border-white/10">
+            <label htmlFor="gemini-toggle" className="text-sm font-medium text-white">
+              Генерировать AI анализ
+            </label>
+            <button
+              type="button"
+              id="gemini-toggle"
+              onClick={() => setGenerateReport(!generateReport)}
+              className={`${generateReport ? 'bg-red-500' : 'bg-neutral-700'} relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-neutral-900`}
+            >
+              <span
+                className={`${generateReport ? 'translate-x-5' : 'translate-x-0'} pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out`}
+              />
+            </button>
+          </div>
         </div>
 
         {/* Кнопка анализа */}
-        <button
-          type="submit"
-          disabled={!selectedFile || isProcessing}
-          className="w-full rounded-xl bg-red-500 px-6 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isProcessing ? (
-            <span className="flex items-center justify-center gap-2">
+        <div className="flex justify-start pt-6 border-t border-white/10">
+          <button
+            type="submit"
+            disabled={!selectedFile || isProcessing}
+            className="rounded-xl bg-red-500 px-8 py-3 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isProcessing ? (
+              <span className="flex items-center justify-center gap-2">
               <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></div>
               Анализ изображения...
             </span>
@@ -182,19 +210,20 @@ export default function ImageDefectDetection({ onAnalysisComplete, className = "
             "Начать анализ"
           )}
         </button>
+        </div>
       </form>
 
-      {/* Ошибки */}
+      {/* Блок для вывода ошибок */}
       {error && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-red-400">
+        <div className="mt-8 flex items-center gap-2 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-red-400">
           <ExclamationTriangleIcon className="h-5 w-5 flex-shrink-0" />
           <span className="text-sm">{error}</span>
         </div>
       )}
 
-      {/* Результаты анализа */}
+      {/* Блок с результатами анализа */}
       {processingResult && (
-        <div className="mt-6 space-y-4">
+        <div className="rounded-2xl border border-white/10 bg-neutral-800/80 p-6 shadow-lg shadow-black/40 space-y-4">
           <h3 className="text-lg font-semibold text-white">Результаты анализа</h3>
           
           {/* Статистика */}
@@ -230,26 +259,26 @@ export default function ImageDefectDetection({ onAnalysisComplete, className = "
             </div>
           )}
 
-          {/* Результирующее изображение */}
-          {processingResult.result_image && (
+          {/* Отчет Gemini */}
+          {processingResult.gemini_report && (
             <div>
-              <h4 className="text-sm font-medium text-white mb-2">Изображение с выделенными дефектами:</h4>
-              <div className="rounded-lg overflow-hidden border border-white/10">
-                <img 
-                  src={`data:image/jpeg;base64,${processingResult.result_image}`}
-                  alt="Результат анализа с выделенными дефектами"
-                  className="w-full object-contain bg-neutral-900/50"
-                />
+              <h4 className="text-sm font-medium text-white mb-2">AI анализ:</h4>
+              <div className="rounded-lg border border-green-500/20 bg-green-500/10 p-4">
+                <p className="text-sm text-white whitespace-pre-wrap">{processingResult.gemini_report?.replace(/[\*#]/g, "")}</p>
               </div>
             </div>
           )}
 
-          {/* Отчет Gemini */}
-          {processingResult.gemini_report && (
+          {/* Результирующее изображение */}
+          {processingResult.result_image && (
             <div>
-              <h4 className="text-sm font-medium text-white mb-2">AI Отчет:</h4>
-              <div className="rounded-lg border border-white/10 bg-neutral-900/30 p-4">
-                <p className="text-sm text-white whitespace-pre-wrap">{processingResult.gemini_report?.replace(/[\*#]/g, "")}</p>
+              <h4 className="text-sm font-medium text-white mb-2">Изображение с выделенными дефектами:</h4>
+              <div className="rounded-lg overflow-hidden border border-white/10 flex justify-center">
+                <img 
+                  src={`data:image/jpeg;base64,${processingResult.result_image}`}
+                  alt="Результат анализа с выделенными дефектами"
+                  className="max-w-full max-h-96 object-contain bg-neutral-900/50"
+                />
               </div>
             </div>
           )}

@@ -47,6 +47,13 @@ export type ApiInfoResponse = {
   timestamp: string
 }
 
+export type DetectionStats = {
+  timestamp: string;
+  total_defects: number;
+  defect_counts: Record<string, number>;
+  confidence_threshold: number;
+};
+
 export class ApiError extends Error {
   readonly status: number
   readonly payload?: unknown
@@ -110,11 +117,25 @@ export async function fetchApiInfo(): Promise<ApiInfoResponse> {
   return ensureOk<ApiInfoResponse>(response)
 }
 
-export async function detectDefects(params: { file: File; confidence?: number }): Promise<DetectResponse> {
+export async function getStats(): Promise<DetectionStats[]> {
+  const response = await fetch(withBase("/api/stats"), {
+    headers: { Accept: "application/json" },
+  });
+  return ensureOk<DetectionStats[]>(response);
+}
+
+export async function detectDefects(params: {
+  file: File
+  confidence?: number
+  generateReport?: boolean
+}): Promise<DetectResponse> {
   const formData = new FormData()
   formData.append("image", params.file)
   if (typeof params.confidence === "number") {
     formData.append("confidence", params.confidence.toString())
+  }
+  if (typeof params.generateReport === "boolean") {
+    formData.append("generate_report", params.generateReport.toString())
   }
 
   const response = await fetch(withBase("/api/detect"), {
