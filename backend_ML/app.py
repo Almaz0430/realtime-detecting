@@ -26,19 +26,23 @@ try:
         
     genai.configure(api_key=GEMINI_API_KEY)
     
-    SYSTEM_PROMPT = """You are a senior AI quality control specialist. Your task is to provide a final, comprehensive report for an end-user based on two sources of information: an original user-uploaded IMAGE and a JSON_DATA report from a preliminary ML detection model.
+    SYSTEM_PROMPT = """You are an expert AI quality control analyst. Your task is to provide a concise and professional analysis of a vehicle's paint condition based on an uploaded IMAGE and a JSON_DATA report from a detection model.
 
-    1.  **Analyze the IMAGE:** First, personally inspect the provided IMAGE for any visible paint defects (like scratches, dents, bubbling, etc.).
-    2.  **Analyze the JSON_DATA:** Second, review the `detections` and `class_counts` from the `JSON_DATA` provided by the local ML model.
-    3.  **Synthesize and Report:** Combine your own visual analysis with the model's data to create a single, detailed report.
-        * State the total defects found by the local model (`total_defects`).
-        * If the local model's detections (e.g., `class: "bubbling"`) match what you see in the IMAGE, confirm this (e.g., "The model correctly identified 'bubbling'").
-        * If the local model missed something you see, point it out (e.g., "In addition to the model's findings, I also observe a 'scratch' that was not flagged").
-        * If the local model's finding seems incorrect or has low confidence, add your assessment.
-        * If no defects are found by either you or the model, congratulate the user.
-        * Conclude by informing the user that a processed image with the *model's* detections highlighted (`result_image`) is also available.
-    4.  **Tone:** Be professional, polite, and informative.
-    5.  **CRITICAL INSTRUCTION:** You must provide your entire final response in the Russian language.
+    **Instructions:**
+
+    1.  **Primary Analysis:** Review the `JSON_DATA` from the local model to understand its findings (`total_defects`, `detections`, `class_counts`).
+    2.  **Visual Verification:** Briefly cross-reference the model's findings with your own inspection of the `IMAGE`.
+    3.  **Synthesize a Professional Summary:** Generate a brief, expert summary in Russian.
+        *   Start with a clear, one-sentence overview of the paint condition.
+        *   Succinctly list the key defects identified by the model, confirming if they are visually accurate.
+        *   If you notice any significant discrepancies (e.g., obvious defects missed by the model, or clear false positives), mention them briefly.
+        *   Avoid conversational filler. Be direct and data-driven.
+        *   If no defects are found, state it clearly and professionally.
+        *   Conclude by mentioning that a processed image with highlighted detections is available.
+
+    **Tone:** Professional, concise, and authoritative.
+
+    **CRITICAL INSTRUCTION:** The entire response must be in Russian.
     """
     
     gemini_model = genai.GenerativeModel(
@@ -51,6 +55,26 @@ except Exception as e:
     print(f"Ошибка конфигурации Gemini: {e}")
     gemini_model = None
 # -----------------------------
+
+DATA_STORAGE_PATH = Path(__file__).parent / "detection_data.json"
+
+def save_detection_data(data):
+    """Сохраняет данные детекции в JSON-файл."""
+    try:
+        if DATA_STORAGE_PATH.exists():
+            with open(DATA_STORAGE_PATH, 'r', encoding='utf-8') as f:
+                records = json.load(f)
+        else:
+            records = []
+        
+        records.append(data)
+        
+        with open(DATA_STORAGE_PATH, 'w', encoding='utf-8') as f:
+            json.dump(records, f, ensure_ascii=False, indent=4)
+            
+    except Exception as e:
+        print(f"Ошибка при сохранении данных детекции: {e}")
+
 
 class PaintDefectDetector:
     """Класс для обнаружения дефектов окраски"""
@@ -435,6 +459,7 @@ def detect_defects():
         
         # Получаем параметры
         confidence_threshold = float(request.form.get('confidence', 0.5))
+        generate_report = request.form.get('generate_report', 'false').lower() == 'true'
         
         # Читаем изображение
         image_bytes = file.read()
@@ -466,45 +491,55 @@ def detect_defects():
 
         total_defects = len(detections)
         
-        ml_output_data = {
-            'success': True,
-            'detections': detections,
-            'class_counts': defect_counts, 
+        # Сохраняем данные для статистики
+        detection_record = {
+            'timestamp': datetime.now().isoformat(),
             'total_defects': total_defects,
-            'image_with_detections_available': True 
+            'defect_counts': defect_counts,
+            'confidence_threshold': confidence_threshold
         }
-
-        json_string = json.dumps(ml_output_data, ensure_ascii=False, indent=2)
-
-        gemini_user_prompt_text = f"""
-        Here is the JSON_DATA from our local detection model:
-        ```json
-        {json_string}
-        Please analyze this JSON_DATA along with the provided user IMAGE and generate the final report as per your instructions. """
-        
-        image_pil_for_mime = Image.open(io.BytesIO(image_bytes))
-        image_mime_type = Image.MIME.get(image_pil_for_mime.format)
-
-        # Убедимся, что формат поддерживается
-        if image_mime_type not in ['image/jpeg', 'image/png']:
-            image_mime_type = 'image/jpeg' # Конвертируем в JPEG по умолчанию
-
-        image_part = {
-            "mime_type": image_mime_type,
-            "data": image_bytes
-        }
+        save_detection_data(detection_record)
 
         gemini_report = ""
-        try:
-            # Отправляем список: [текст, изображение]
-            response = gemini_model.generate_content([
-                gemini_user_prompt_text, # Часть 1: Текст (JSON)
-                image_part               # Часть 2: Изображение
-            ])
-            gemini_report = response.text
-        except Exception as e:
-            print(f"Ошибка при вызове Gemini API: {e}")
-            gemini_report = "Не удалось сгенерировать подробный отчет."
+        if generate_report:
+            ml_output_data = {
+                'success': True,
+                'detections': detections,
+                'class_counts': defect_counts, 
+                'total_defects': total_defects,
+                'image_with_detections_available': True 
+            }
+
+            json_string = json.dumps(ml_output_data, ensure_ascii=False, indent=2)
+
+            gemini_user_prompt_text = f"""
+            Here is the JSON_DATA from our local detection model:
+            ```json
+            {json_string}
+            Please analyze this JSON_DATA along with the provided user IMAGE and generate the final report as per your instructions. """
+            
+            image_pil_for_mime = Image.open(io.BytesIO(image_bytes))
+            image_mime_type = Image.MIME.get(image_pil_for_mime.format)
+
+            # Убедимся, что формат поддерживается
+            if image_mime_type not in ['image/jpeg', 'image/png']:
+                image_mime_type = 'image/jpeg' # Конвертируем в JPEG по умолчанию
+
+            image_part = {
+                "mime_type": image_mime_type,
+                "data": image_bytes
+            }
+
+            try:
+                # Отправляем список: [текст, изображение]
+                response = gemini_model.generate_content([
+                    gemini_user_prompt_text, # Часть 1: Текст (JSON)
+                    image_part               # Часть 2: Изображение
+                ])
+                gemini_report = response.text
+            except Exception as e:
+                print(f"Ошибка при вызове Gemini API: {e}")
+                gemini_report = "Не удалось сгенерировать подробный отчет."
             
         # данные фронту
         response_data = ({
@@ -703,6 +738,20 @@ def internal_error(e):
         'success': False
     }), 500
 
+
+@app.route('/api/stats', methods=['GET'])
+def get_stats():
+    """Возвращает статистику обнаруженных дефектов."""
+    if not DATA_STORAGE_PATH.exists():
+        return jsonify([])
+
+    try:
+        with open(DATA_STORAGE_PATH, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        app.logger.error(f"Ошибка при чтении файла статистики: {e}")
+        return jsonify({"error": "Не удалось загрузить статистику"}), 500
 
 if __name__ == '__main__':
     print("="*60)

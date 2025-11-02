@@ -1,0 +1,96 @@
+[
+    {
+        "timestamp": "2025-11-02T21:19:32.979831",
+        "total_defects": 1,
+        "defect_counts": {
+            "scratch": 1
+        },
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T21:20:32.233780",
+        "total_defects": 1,
+        "defect_counts": {
+            "scratch": 1
+        },
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T22:09:52.419380",
+        "total_defects": 1,
+        "defect_counts": {
+            "dent": 1
+        },
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T22:11:35.483266",
+        "total_defects": 1,
+        "defect_counts": {
+            "dent": 1
+        },
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T22:14:22.313355",
+        "total_defects": 1,
+        "defect_counts": {
+            "dent": 1
+        },
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T22:15:50.057100",
+        "total_defects": 1,
+        "defect_counts": {
+            "dent": 1
+        },
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T22:18:44.848511",
+        "total_defects": 1,
+        "defect_counts": {
+            "scratch": 1
+        },
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T22:29:26.649791",
+        "total_defects": 0,
+        "defect_counts": {},
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T22:32:15.490233",
+        "total_defects": 0,
+        "defect_counts": {},
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T22:32:32.780007",
+        "total_defects": 0,
+        "defect_counts": {},
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T22:35:19.006112",
+        "total_defects": 0,
+        "defect_counts": {},
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T22:37:52.235852",
+        "total_defects": 0,
+        "defect_counts": {},
+        "confidence_threshold": 0.5
+    },
+    {
+        "timestamp": "2025-11-02T23:10:22.790476",
+        "total_defects": 1,
+        "defect_counts": {
+            "scratch": 1
+        },
+        "confidence_threshold": 0.5
+    }
+]
