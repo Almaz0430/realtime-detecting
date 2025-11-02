@@ -9,7 +9,7 @@ interface ImageDefectDetectionProps {
 
 export default function ImageDefectDetection({ onAnalysisComplete, className = "" }: ImageDefectDetectionProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [confidence, setConfidence] = useState(0.5)
+  const [confidence, setConfidence] = useState(0.1)
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingResult, setProcessingResult] = useState<DetectResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -106,10 +106,13 @@ export default function ImageDefectDetection({ onAnalysisComplete, className = "
               type="file"
               accept="image/*"
               onChange={handleFileChange}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              className="absolute inset-0 w-full h-full opacity-0 pointer-events-none" // pointer-events-none чтобы не перекрывать hover
             />
-            <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/15 bg-neutral-900/70 px-6 text-center transition-all duration-300 ease-in-out hover:border-red-500 hover:bg-red-500/10 hover:scale-105 hover:shadow-2xl hover:shadow-red-500/30 cursor-pointer group">
-              <PhotoIcon className="h-10 w-10 text-red-500 transition-transform duration-300 group-hover:scale-110 group-hover:text-red-500" />
+            <div
+              className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/15 bg-neutral-900/70 px-6 text-center transition-all duration-300 ease-in-out hover:border-red-500 hover:bg-red-500/10 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer group"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <PhotoIcon className="h-10 w-10 text-red-500 transition-transform duration-300 group-hover:text-red-500" />
               <p className="mt-2 text-sm text-white">Перетащите изображение сюда или нажмите для выбора</p>
               <p className="text-xs text-gray-400">Максимальный размер: 10MB</p>
             </div>
@@ -246,7 +249,7 @@ export default function ImageDefectDetection({ onAnalysisComplete, className = "
             <div>
               <h4 className="text-sm font-medium text-white mb-2">AI Отчет:</h4>
               <div className="rounded-lg border border-white/10 bg-neutral-900/30 p-4">
-                <p className="text-sm text-white whitespace-pre-wrap">{processingResult.gemini_report}</p>
+                <p className="text-sm text-white whitespace-pre-wrap">{processingResult.gemini_report?.replace(/[\*#]/g, "")}</p>
               </div>
             </div>
           )}
