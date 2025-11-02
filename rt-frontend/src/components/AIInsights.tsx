@@ -130,7 +130,7 @@ export default function AIInsights({ detections, geminiReport }: AIInsightsProps
       case "warning":
         return <ExclamationTriangleIcon className="h-6 w-6 text-yellow-400" />
       case "minor":
-        return <ChartBarIcon className="h-6 w-6 text-blue-400" />
+        return <ChartBarIcon className="h-6 w-6 text-gray-400" />
       default:
         return <CheckCircleIcon className="h-6 w-6 text-green-400" />
     }
@@ -143,7 +143,7 @@ export default function AIInsights({ detections, geminiReport }: AIInsightsProps
       case "warning":
         return "border-yellow-500/30 bg-yellow-500/10"
       case "minor":
-        return "border-blue-500/30 bg-blue-500/10"
+        return "border-gray-700/30 bg-gray-700/10"
       default:
         return "border-green-500/30 bg-green-500/10"
     }
@@ -228,13 +228,13 @@ export default function AIInsights({ detections, geminiReport }: AIInsightsProps
                 <div className="flex items-center gap-2">
                   <span className={`text-sm font-medium ${
                     detection.confidence > 0.8 ? 'text-red-400' : 
-                    detection.confidence > 0.6 ? 'text-yellow-400' : 'text-blue-400'
+                    detection.confidence > 0.6 ? 'text-yellow-400' : 'text-gray-400'
                   }`}>
                     {(detection.confidence * 100).toFixed(1)}%
                   </span>
                   <div className={`w-2 h-2 rounded-full ${
                     detection.confidence > 0.8 ? 'bg-red-400' : 
-                    detection.confidence > 0.6 ? 'bg-yellow-400' : 'bg-blue-400'
+                    detection.confidence > 0.6 ? 'bg-yellow-400' : 'bg-gray-400'
                   }`} />
                 </div>
               </div>
