@@ -181,6 +181,133 @@ class PaintDefectDetector:
         
         return result_image
 
+    def process_video(self, video_path: str, output_path: str, confidence_threshold: float = 0.5, skip_frames: int = 1):
+        """
+        Обрабатывает видео и создает новое видео с выделенными дефектами
+        
+        Args:
+            video_path: путь к входному видео
+            output_path: путь для сохранения обработанного видео
+            confidence_threshold: порог уверенности для детекции
+            skip_frames: обрабатывать каждый N-й кадр (для ускорения)
+        
+        Returns:
+            dict: статистика обработки
+        """
+        cap = cv2.VideoCapture(video_path)
+        
+        # Получаем параметры видео
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        
+        # Настраиваем кодек для выходного видео
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+        
+        frame_count = 0
+        processed_frames = 0
+        total_detections = 0
+        defect_summary = {}
+        
+        print(f"Обработка видео: {total_frames} кадров, {fps} FPS")
+        
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            frame_count += 1
+            
+            # Обрабатываем только каждый skip_frames кадр
+            if frame_count % skip_frames == 0:
+                # Детекция дефектов
+                detections = self.detect_defects(frame, confidence_threshold)
+                
+                # Рисуем детекции
+                if detections:
+                    frame = self.draw_detections(frame, detections)
+                    total_detections += len(detections)
+                    
+                    # Подсчитываем типы дефектов
+                    for detection in detections:
+                        defect_type = detection['class']
+                        defect_summary[defect_type] = defect_summary.get(defect_type, 0) + 1
+                
+                processed_frames += 1
+                
+                # Показываем прогресс
+                if processed_frames % 30 == 0:
+                    progress = (frame_count / total_frames) * 100
+                    print(f"Прогресс: {progress:.1f}% ({frame_count}/{total_frames})")
+            
+            # Записываем кадр в выходное видео
+            out.write(frame)
+        
+        # Освобождаем ресурсы
+        cap.release()
+        out.release()
+        
+        return {
+            'total_frames': total_frames,
+            'processed_frames': processed_frames,
+            'total_detections': total_detections,
+            'defect_summary': defect_summary,
+            'output_path': output_path
+        }
+
+    def extract_frames_with_defects(self, video_path: str, output_dir: str, confidence_threshold: float = 0.5, max_frames: int = 10):
+        """
+        Извлекает кадры с дефектами из видео
+        
+        Args:
+            video_path: путь к видео
+            output_dir: папка для сохранения кадров
+            confidence_threshold: порог уверенности
+            max_frames: максимальное количество кадров для сохранения
+        
+        Returns:
+            list: список сохраненных кадров с информацией о дефектах
+        """
+        cap = cv2.VideoCapture(video_path)
+        
+        os.makedirs(output_dir, exist_ok=True)
+        
+        frame_count = 0
+        saved_frames = []
+        
+        while len(saved_frames) < max_frames:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            frame_count += 1
+            
+            # Детекция дефектов
+            detections = self.detect_defects(frame, confidence_threshold)
+            
+            if detections:
+                # Сохраняем кадр с дефектами
+                timestamp = frame_count / cap.get(cv2.CAP_PROP_FPS)
+                filename = f"defect_frame_{frame_count:06d}_{timestamp:.2f}s.jpg"
+                filepath = os.path.join(output_dir, filename)
+                
+                # Рисуем детекции и сохраняем
+                frame_with_detections = self.draw_detections(frame, detections)
+                cv2.imwrite(filepath, frame_with_detections)
+                
+                saved_frames.append({
+                    'frame_number': frame_count,
+                    'timestamp': timestamp,
+                    'filename': filename,
+                    'detections': detections,
+                    'defect_count': len(detections)
+                })
+        
+        cap.release()
+        return saved_frames
+
 
 # Создаем Flask приложение
 app = Flask(__name__)
@@ -209,6 +336,7 @@ def index():
         'description': 'REST API для обнаружения дефектов окраски автомобилей',
         'endpoints': {
             'POST /api/detect': 'Обнаружение дефектов на изображении',
+            'POST /api/detect_video': 'Обнаружение дефектов в видео',
             'GET /api/model_info': 'Информация о модели',
             'GET /api/health': 'Проверка состояния API'
         },
@@ -336,6 +464,120 @@ def detect_defects():
         }), 500
 
 
+@app.route('/api/detect_video', methods=['POST'])
+def detect_video():
+    """API для обнаружения дефектов в видео"""
+    
+    if detector is None:
+        return jsonify({'error': 'Модель детекции не загружена.', 'success': False}), 500
+    
+    try:
+        # Проверяем наличие файла
+        if 'video' not in request.files:
+            return jsonify({
+                'error': 'Видеофайл не найден',
+                'success': False
+            }), 400
+        
+        file = request.files['video']
+        if file.filename == '':
+            return jsonify({
+                'error': 'Файл не выбран',
+                'success': False
+            }), 400
+        
+        # Получаем параметры
+        confidence_threshold = float(request.form.get('confidence', 0.5))
+        skip_frames = int(request.form.get('skip_frames', 2))  # Обрабатываем каждый 2-й кадр по умолчанию
+        extract_frames = request.form.get('extract_frames', 'false').lower() == 'true'
+        
+        # Создаем временные папки
+        temp_dir = Path(__file__).parent / "temp"
+        temp_dir.mkdir(exist_ok=True)
+        
+        # Сохраняем загруженное видео
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        input_filename = f"input_video_{timestamp}.mp4"
+        input_path = temp_dir / input_filename
+        file.save(str(input_path))
+        
+        # Путь для выходного видео
+        output_filename = f"processed_video_{timestamp}.mp4"
+        output_path = temp_dir / output_filename
+        
+        # Обрабатываем видео
+        print(f"Начинаем обработку видео: {input_path}")
+        processing_stats = detector.process_video(
+            str(input_path), 
+            str(output_path), 
+            confidence_threshold, 
+            skip_frames
+        )
+        
+        # Извлекаем кадры с дефектами (если запрошено)
+        extracted_frames = []
+        if extract_frames and processing_stats['total_detections'] > 0:
+            frames_dir = temp_dir / f"frames_{timestamp}"
+            extracted_frames = detector.extract_frames_with_defects(
+                str(input_path), 
+                str(frames_dir), 
+                confidence_threshold, 
+                max_frames=5
+            )
+        
+        # Конвертируем обработанное видео в base64 (для небольших видео)
+        video_base64 = None
+        if output_path.exists() and output_path.stat().st_size < 10 * 1024 * 1024:  # Если меньше 10MB
+            with open(output_path, 'rb') as video_file:
+                video_base64 = base64.b64encode(video_file.read()).decode('utf-8')
+        
+        # Конвертируем извлеченные кадры в base64
+        frames_base64 = []
+        for frame_info in extracted_frames:
+            frame_path = Path(frame_info['filename'])
+            if frame_path.exists():
+                with open(frame_path, 'rb') as img_file:
+                    img_base64 = base64.b64encode(img_file.read()).decode('utf-8')
+                    frames_base64.append({
+                        'timestamp': frame_info['timestamp'],
+                        'frame_number': frame_info['frame_number'],
+                        'defect_count': frame_info['defect_count'],
+                        'image_base64': img_base64,
+                        'detections': frame_info['detections']
+                    })
+        
+        # Очищаем временные файлы
+        try:
+            if input_path.exists():
+                input_path.unlink()
+            if not video_base64 and output_path.exists():  # Удаляем только если не отправляем в base64
+                output_path.unlink()
+        except Exception as e:
+            print(f"Ошибка при очистке временных файлов: {e}")
+        
+        return jsonify({
+            'success': True,
+            'processing_stats': processing_stats,
+            'video_base64': video_base64,
+            'output_filename': output_filename if video_base64 else None,
+            'extracted_frames': frames_base64,
+            'summary': {
+                'total_frames': processing_stats['total_frames'],
+                'processed_frames': processing_stats['processed_frames'],
+                'total_detections': processing_stats['total_detections'],
+                'defect_types': list(processing_stats['defect_summary'].keys()),
+                'defect_counts': processing_stats['defect_summary']
+            },
+            'timestamp': datetime.now().isoformat()
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'error': f'Ошибка обработки видео: {str(e)}',
+            'success': False
+        }), 500
+
+
 @app.route('/api/model_info')
 def model_info():
     """Информация о модели"""
@@ -381,6 +623,7 @@ def not_found(e):
         'available_endpoints': [
             'GET /',
             'POST /api/detect',
+            'POST /api/detect_video',
             'GET /api/model_info',
             'GET /api/health'
         ]
